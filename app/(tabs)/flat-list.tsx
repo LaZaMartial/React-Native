@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { TextInput } from "react-native-paper";
+import { getAllDocuments } from "@/services/get-all";
 
 const data = [
   { key: 1, numero: 2287, nom: "Rabe", noteMath: 19, notePhy: 14 },
@@ -73,7 +74,13 @@ const Add = ({ onClose }: any) => {
           <TextInput />
           <TextInput inputMode="numeric" />
           <TextInput inputMode="numeric" />
-          <Button title="Ajouter" onPress={() => alert("ajouter")} />
+          <Button
+            title="Ajouter"
+            onPress={() => {
+              alert("ajouter");
+              getAllDocuments();
+            }}
+          />
           <Button title="Fermer" onPress={onClose} />
         </View>
       </View>
