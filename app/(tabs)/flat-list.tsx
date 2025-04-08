@@ -9,15 +9,28 @@ import {
 } from "react-native";
 import { TextInput } from "react-native-paper";
 import { getAllDocuments } from "@/services/get-all";
+import { addDocument } from "@/services/create";
+import { updateDocument } from "@/services/update";
+import { deleteDocument } from "@/services/delete";
 
-const data = [
-  { key: 1, numero: 2287, nom: "Rabe", noteMath: 19, notePhy: 14 },
-  { key: 2, numero: 2248, nom: "Laza", noteMath: 12, notePhy: 6 },
-];
-
-const Preview = ({ item, onClose }: any) => {
+const Preview = ({ item, onClose, onRefresh }: any) => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  let moyenne = (item?.noteMath + item?.notePhy) / 2;
+  const handleDelete = async () => {
+    try {
+      await deleteDocument(item.$id);
+      alert("Élève supprimé avec succès !");
+      onClose();
+      if (onRefresh) {
+        onRefresh(); // Rechargez les données
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression :", error);
+      alert("Une erreur est survenue lors de la suppression.");
+    }
+  };
+
+  let moyenne = (item?.note_mat + item?.note_phy) / 2;
+
   return (
     <Modal animationType="slide" transparent={true} visible={!!item}>
       <View className="flex-1 justify-center items-center bg-black/50">
@@ -29,16 +42,13 @@ const Preview = ({ item, onClose }: any) => {
                 title="Modifier"
                 onPress={() => setSelectedItem(item)}
               ></Button>
-              <Button
-                title="Supprimer"
-                onPress={() => alert("Supprimer")}
-              ></Button>
+              <Button title="Supprimer" onPress={handleDelete}></Button>
             </View>
           </View>
-          <Text className="mb-1">Numéro: {item?.numero}</Text>
+          <Text className="mb-1">Matricule: {item?.mat}</Text>
           <Text className="mb-1">Nom: {item?.nom}</Text>
-          <Text className="mb-1">Note Math: {item?.noteMath}</Text>
-          <Text className="mb-1">Note Physique: {item?.notePhy}</Text>
+          <Text className="mb-1">Note Math: {item?.note_mat}</Text>
+          <Text className="mb-1">Note Physique: {item?.note_phy}</Text>
           <Text className="mb-1">Moyenne: {moyenne.toFixed(2)}</Text>
           <Text>
             Status:{" "}
@@ -49,30 +59,64 @@ const Preview = ({ item, onClose }: any) => {
           <Button title="Fermer" onPress={onClose} />
         </View>
       </View>
-      {setSelectedItem != null && (
+      {selectedItem != null && (
         <Update item={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
     </Modal>
   );
 };
 
-const Add = ({ onClose }: any) => {
+const Update = ({ item, onClose, onRefresh }: any) => {
+  const [mat, setMat] = useState(item?.mat || "");
+  const [nom, setNom] = useState(item?.nom || "");
+  const [noteMath, setNoteMath] = useState(item?.note_mat || "");
+  const [notePhy, setNotePhy] = useState(item?.note_phy || "");
+
+  const handleUpdate = async () => {
+    try {
+      await updateDocument(item.$id, {
+        mat: mat,
+        nom: nom,
+        note_mat: parseFloat(noteMath),
+        note_phy: parseFloat(notePhy),
+      });
+      alert("Élève mis à jour avec succès !");
+      onClose();
+      if (onRefresh) {
+        onRefresh(); // Rechargez les données
+      }
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour :", error);
+      alert("Une erreur est survenue lors de la mise à jour.");
+    }
+  };
+
   return (
-    <Modal animationType="slide" transparent={true}>
+    <Modal animationType="slide" transparent={true} visible={!!item}>
       <View className="flex-1 justify-center items-center bg-black/50">
         <View className="flex flex-col gap-3 bg-white p-5 rounded-md w-3/4">
-          <Text className="text-xl font-bold mb-3">📄 Ajouter</Text>
-          <TextInput inputMode="numeric" />
-          <TextInput />
-          <TextInput inputMode="numeric" />
-          <TextInput inputMode="numeric" />
-          <Button
-            title="Ajouter"
-            onPress={() => {
-              alert("ajouter");
-              getAllDocuments();
-            }}
+          <Text className="text-xl font-bold mb-3">📄 Modifier</Text>
+          <TextInput
+            placeholder="Matricule"
+            value={mat}
+            onChangeText={setMat}
           />
+          <TextInput placeholder="Nom" value={nom} onChangeText={setNom} />
+          <TextInput
+            inputMode="numeric"
+            placeholder="Note Math"
+            value={noteMath.toString()}
+            onChangeText={setNoteMath}
+            keyboardType="numeric"
+          />
+          <TextInput
+            inputMode="numeric"
+            placeholder="Note Physique"
+            value={notePhy.toString()}
+            onChangeText={setNotePhy}
+            keyboardType="numeric"
+          />
+          <Button title="Modifier" onPress={handleUpdate} />
           <Button title="Fermer" onPress={onClose} />
         </View>
       </View>
@@ -80,17 +124,47 @@ const Add = ({ onClose }: any) => {
   );
 };
 
-const Update = ({ item, onClose }: any) => {
+const Add = ({ onClose }: any) => {
+  const [mat, setMat] = useState("");
+  const [nom, setNom] = useState("");
+  const [noteMath, setNoteMath] = useState("");
+  const [notePhy, setNotePhy] = useState("");
+
+  const handleAdd = async () => {
+    try {
+      await addDocument(mat, nom, parseFloat(noteMath), parseFloat(notePhy));
+      alert("Élève ajouté avec succès !");
+      onClose();
+    } catch (error) {
+      console.error("Erreur lors de l'ajout :", error);
+      alert("Une erreur est survenue lors de l'ajout.");
+    }
+  };
+
   return (
-    <Modal animationType="slide" transparent={true} visible={!!item}>
+    <Modal animationType="slide" transparent={true}>
       <View className="flex-1 justify-center items-center bg-black/50">
         <View className="flex flex-col gap-3 bg-white p-5 rounded-md w-3/4">
-          <Text className="text-xl font-bold mb-3">📄 Modifier</Text>
-          <TextInput inputMode="numeric" value={item?.numero.toString()} />
-          <TextInput value={item?.nom.toString()} />
-          <TextInput inputMode="numeric" value={item?.noteMath.toString()} />
-          <TextInput inputMode="numeric" value={item?.notePhy.toString()} />
-          <Button title="Modifier" onPress={() => alert("modifier")} />
+          <Text className="text-xl font-bold mb-3">📄 Ajouter</Text>
+          <TextInput
+            placeholder="Matricule"
+            value={mat}
+            onChangeText={setMat}
+          />
+          <TextInput placeholder="Nom" value={nom} onChangeText={setNom} />
+          <TextInput
+            placeholder="Note Math"
+            value={noteMath}
+            onChangeText={setNoteMath}
+            keyboardType="numeric"
+          />
+          <TextInput
+            placeholder="Note Physique"
+            value={notePhy}
+            onChangeText={setNotePhy}
+            keyboardType="numeric"
+          />
+          <Button title="Ajouter" onPress={handleAdd} />
           <Button title="Fermer" onPress={onClose} />
         </View>
       </View>

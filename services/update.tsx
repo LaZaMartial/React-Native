@@ -1,10 +1,7 @@
 import { config, database } from "./appwrite";
 
 // Fonction pour mettre à jour un document
-export const updateDocument = async (
-  documentId: string,
-  updatedData: string
-) => {
+export const updateDocument = async (documentId: string, updatedData: any) => {
   try {
     const response = await database.updateDocument(
       config.db, // ID de la base de données
