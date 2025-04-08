@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   FlatList,
@@ -14,14 +14,6 @@ const data = [
   { key: 1, numero: 2287, nom: "Rabe", noteMath: 19, notePhy: 14 },
   { key: 2, numero: 2248, nom: "Laza", noteMath: 12, notePhy: 6 },
 ];
-
-const moyenneMinimale = Math.min(
-  ...data.map((etudiant) => (etudiant.noteMath + etudiant.notePhy) / 2)
-);
-
-const moyenneMaximale = Math.max(
-  ...data.map((etudiant) => (etudiant.noteMath + etudiant.notePhy) / 2)
-);
 
 const Preview = ({ item, onClose }: any) => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -107,8 +99,34 @@ const Update = ({ item, onClose }: any) => {
 };
 
 const MyList = () => {
+  const [documents, setDocuments] = useState([]);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [addToogled, setAddToogled] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        const docs = await getAllDocuments();
+        setDocuments(docs);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des documents :", error);
+      }
+    };
+    fetchDocuments();
+  }, []);
+
+  const moyenneMinimale = Math.min(
+    ...documents.map(
+      (etudiant: any) => (etudiant.note_mat + etudiant.note_phy) / 2
+    )
+  );
+
+  const moyenneMaximale = Math.max(
+    ...documents.map(
+      (etudiant: any) => (etudiant.note_mat + etudiant.note_phy) / 2
+    )
+  );
+
   return (
     <View className="p-5 bg-white">
       {/* ✅ Label au-dessus de la liste */}
@@ -139,21 +157,21 @@ const MyList = () => {
 
       {/* ✅ Liste des élèves */}
       <FlatList
-        data={data}
-        keyExtractor={(item) => item.key.toString()}
+        data={documents}
+        keyExtractor={(item: any) => item.$id.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => setSelectedItem(item)}>
             <View className="flex-row border-b border-gray-300 p-3">
-              <Text className="flex-1 text-center">{item.numero}</Text>
+              <Text className="flex-1 text-center">{item.mat}</Text>
               <Text className="flex-1 text-center">{item.nom}</Text>
-              <Text className="flex-1 text-center">{item.noteMath}</Text>
-              <Text className="flex-1 text-center">{item.notePhy}</Text>
+              <Text className="flex-1 text-center">{item.note_mat}</Text>
+              <Text className="flex-1 text-center">{item.note_phy}</Text>
               <Text className="flex-1 text-center">
-                {((item.noteMath + item.notePhy) / 2).toFixed(2)}
+                {((item.note_mat + item.note_phy) / 2).toFixed(2)}
               </Text>
               <Text
                 className={`mt-2 w-2 h-2 rounded-full ${
-                  (item.noteMath + item.notePhy) / 2 >= 10
+                  (item.note_mat + item.note_phy) / 2 >= 10
                     ? `bg-green-400`
                     : `bg-red-400`
                 }  `}
