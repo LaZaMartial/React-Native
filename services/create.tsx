@@ -19,7 +19,7 @@ export const addDocument = async (
         note_phy: note_phy,
       }
     );
-    console.log("Document ajouté :", response);
+    // console.log("Document ajouté :", response);
     return response;
   } catch (error) {
     console.error("Erreur lors de l'ajout du document :", error);

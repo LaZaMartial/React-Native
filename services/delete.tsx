@@ -8,7 +8,7 @@ export const deleteDocument = async (documentId: string) => {
       config.collectionId, // ID de la collection
       documentId // ID du document à supprimer
     );
-    console.log("Document supprimé avec succès.");
+    // console.log("Document supprimé avec succès.");
   } catch (error) {
     console.error("Erreur lors de la suppression du document :", error);
   }

@@ -1,66 +1,83 @@
+// src/components/MyList.tsx
 import React, { useState, useEffect } from "react";
 import {
-  Button,
   FlatList,
   Modal,
   Text,
   TouchableOpacity,
   View,
+  ScrollView,
 } from "react-native";
-import { TextInput } from "react-native-paper";
+import { TextInput, Button } from "react-native-paper";
 import { getAllDocuments } from "@/services/get-all";
 import { addDocument } from "@/services/create";
 import { updateDocument } from "@/services/update";
 import { deleteDocument } from "@/services/delete";
 
+const CustomButton = ({ title, onPress, color = "#2563eb" }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={{
+      backgroundColor: color,
+      padding: 10,
+      borderRadius: 12,
+      marginVertical: 5,
+    }}
+  >
+    <Text className="text-white text-center font-semibold">{title}</Text>
+  </TouchableOpacity>
+);
+
 const Preview = ({ item, onClose, onRefresh }: any) => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  let moyenne = (item?.note_mat + item?.note_phy) / 2;
+
   const handleDelete = async () => {
     try {
       await deleteDocument(item.$id);
       alert("Élève supprimé avec succès !");
       onClose();
-      if (onRefresh) {
-        onRefresh(); // Rechargez les données
-      }
+      if (onRefresh) onRefresh();
     } catch (error) {
       console.error("Erreur lors de la suppression :", error);
       alert("Une erreur est survenue lors de la suppression.");
     }
   };
 
-  let moyenne = (item?.note_mat + item?.note_phy) / 2;
-
   return (
     <Modal animationType="slide" transparent={true} visible={!!item}>
-      <View className="flex-1 justify-center items-center bg-black/50">
-        <View className="flex flex-col gap-3 bg-white p-5 rounded-md w-3/4">
-          <View className="flex-row">
-            <Text className="text-xl font-bold mb-3">📄 Détails</Text>
-            <View className="flex flex-row gap-2 absolute right-0">
-              <Button
-                title="Modifier"
-                onPress={() => setSelectedItem(item)}
-              ></Button>
-              <Button title="Supprimer" onPress={handleDelete}></Button>
-            </View>
-          </View>
-          <Text className="mb-1">Matricule: {item?.mat}</Text>
-          <Text className="mb-1">Nom: {item?.nom}</Text>
-          <Text className="mb-1">Note Math: {item?.note_mat}</Text>
-          <Text className="mb-1">Note Physique: {item?.note_phy}</Text>
-          <Text className="mb-1">Moyenne: {moyenne.toFixed(2)}</Text>
-          <Text>
-            Status:{" "}
-            <Text className={moyenne >= 10 ? `text-green-400` : `text-red-400`}>
-              {moyenne >= 10 ? `Passant` : `Redoublant`}
+      <View className="flex-1 justify-center items-center bg-black/40">
+        <View className="bg-white p-6 rounded-xl w-[90%] shadow-lg">
+          <Text className="text-xl font-bold mb-4 text-center">
+            📄 Détails de l'élève
+          </Text>
+
+          <Text>📌 Matricule : {item?.mat}</Text>
+          <Text>👤 Nom : {item?.nom}</Text>
+          <Text>📘 Note Math : {item?.note_mat}</Text>
+          <Text>🧪 Note Physique : {item?.note_phy}</Text>
+          <Text>🧮 Moyenne : {moyenne.toFixed(2)}</Text>
+          <Text className="mb-4">
+            🏷️ Statut :{" "}
+            <Text className={moyenne >= 10 ? "text-green-600" : "text-red-600"}>
+              {moyenne >= 10 ? "Passant" : "Redoublant"}
             </Text>
           </Text>
-          <Button title="Fermer" onPress={onClose} />
+
+          <CustomButton
+            title="✏️ Modifier"
+            onPress={() => setSelectedItem(item)}
+          />
+          <CustomButton
+            title="🗑️ Supprimer"
+            onPress={handleDelete}
+            color="#dc2626"
+          />
+          <CustomButton title="❌ Fermer" onPress={onClose} color="#6b7280" />
         </View>
       </View>
-      {selectedItem != null && (
-        <Update item={selectedItem} onClose={() => setSelectedItem(null)} />
+      {selectedItem && (
+        <Update item={selectedItem} onClose={onClose} onRefresh={onRefresh} />
       )}
     </Modal>
   );
@@ -69,62 +86,68 @@ const Preview = ({ item, onClose, onRefresh }: any) => {
 const Update = ({ item, onClose, onRefresh }: any) => {
   const [mat, setMat] = useState(item?.mat || "");
   const [nom, setNom] = useState(item?.nom || "");
-  const [noteMath, setNoteMath] = useState(item?.note_mat || "");
-  const [notePhy, setNotePhy] = useState(item?.note_phy || "");
+  const [noteMath, setNoteMath] = useState(item?.note_mat?.toString() || "");
+  const [notePhy, setNotePhy] = useState(item?.note_phy?.toString() || "");
 
   const handleUpdate = async () => {
     try {
       await updateDocument(item.$id, {
-        mat: mat,
-        nom: nom,
+        mat,
+        nom,
         note_mat: parseFloat(noteMath),
         note_phy: parseFloat(notePhy),
       });
-      alert("Élève mis à jour avec succès !");
+      alert("Mise à jour réussie !");
       onClose();
-      if (onRefresh) {
-        onRefresh(); // Rechargez les données
-      }
+      if (onRefresh) onRefresh();
     } catch (error) {
-      console.error("Erreur lors de la mise à jour :", error);
-      alert("Une erreur est survenue lors de la mise à jour.");
+      console.error(error);
+      alert("Erreur lors de la mise à jour.");
     }
   };
 
   return (
-    <Modal animationType="slide" transparent={true} visible={!!item}>
-      <View className="flex-1 justify-center items-center bg-black/50">
-        <View className="flex flex-col gap-3 bg-white p-5 rounded-md w-3/4">
-          <Text className="text-xl font-bold mb-3">📄 Modifier</Text>
+    <Modal animationType="slide" transparent={true}>
+      <View className="flex-1 justify-center items-center bg-black/40">
+        <View className="bg-white p-6 rounded-xl w-[90%] shadow-lg">
+          <Text className="text-xl font-bold mb-4 text-center">
+            ✏️ Modifier l'élève
+          </Text>
           <TextInput
-            placeholder="Matricule"
+            label="Matricule"
             value={mat}
             onChangeText={setMat}
+            mode="outlined"
           />
-          <TextInput placeholder="Nom" value={nom} onChangeText={setNom} />
           <TextInput
-            inputMode="numeric"
-            placeholder="Note Math"
-            value={noteMath.toString()}
+            label="Nom"
+            value={nom}
+            onChangeText={setNom}
+            mode="outlined"
+          />
+          <TextInput
+            label="Note Math"
+            value={noteMath}
             onChangeText={setNoteMath}
             keyboardType="numeric"
+            mode="outlined"
           />
           <TextInput
-            inputMode="numeric"
-            placeholder="Note Physique"
-            value={notePhy.toString()}
+            label="Note Physique"
+            value={notePhy}
             onChangeText={setNotePhy}
             keyboardType="numeric"
+            mode="outlined"
           />
-          <Button title="Modifier" onPress={handleUpdate} />
-          <Button title="Fermer" onPress={onClose} />
+          <CustomButton title="💾 Sauvegarder" onPress={handleUpdate} />
+          <CustomButton title="❌ Annuler" onPress={onClose} color="#6b7280" />
         </View>
       </View>
     </Modal>
   );
 };
 
-const Add = ({ onClose }: any) => {
+const Add = ({ onClose, onRefresh }: any) => {
   const [mat, setMat] = useState("");
   const [nom, setNom] = useState("");
   const [noteMath, setNoteMath] = useState("");
@@ -133,39 +156,50 @@ const Add = ({ onClose }: any) => {
   const handleAdd = async () => {
     try {
       await addDocument(mat, nom, parseFloat(noteMath), parseFloat(notePhy));
-      alert("Élève ajouté avec succès !");
+      alert("Élève ajouté !");
       onClose();
+      if (onRefresh) onRefresh();
     } catch (error) {
-      console.error("Erreur lors de l'ajout :", error);
-      alert("Une erreur est survenue lors de l'ajout.");
+      console.error(error);
+      alert("Erreur lors de l'ajout.");
     }
   };
 
   return (
     <Modal animationType="slide" transparent={true}>
-      <View className="flex-1 justify-center items-center bg-black/50">
-        <View className="flex flex-col gap-3 bg-white p-5 rounded-md w-3/4">
-          <Text className="text-xl font-bold mb-3">📄 Ajouter</Text>
+      <View className="flex-1 justify-center items-center bg-black/40">
+        <View className="bg-white p-6 rounded-xl w-[90%] shadow-lg">
+          <Text className="text-xl font-bold mb-4 text-center">
+            ➕ Ajouter un élève
+          </Text>
           <TextInput
-            placeholder="Matricule"
+            label="Matricule"
             value={mat}
             onChangeText={setMat}
+            mode="outlined"
           />
-          <TextInput placeholder="Nom" value={nom} onChangeText={setNom} />
           <TextInput
-            placeholder="Note Math"
+            label="Nom"
+            value={nom}
+            onChangeText={setNom}
+            mode="outlined"
+          />
+          <TextInput
+            label="Note Math"
             value={noteMath}
             onChangeText={setNoteMath}
             keyboardType="numeric"
+            mode="outlined"
           />
           <TextInput
-            placeholder="Note Physique"
+            label="Note Physique"
             value={notePhy}
             onChangeText={setNotePhy}
             keyboardType="numeric"
+            mode="outlined"
           />
-          <Button title="Ajouter" onPress={handleAdd} />
-          <Button title="Fermer" onPress={onClose} />
+          <CustomButton title="✅ Ajouter" onPress={handleAdd} />
+          <CustomButton title="❌ Annuler" onPress={onClose} color="#6b7280" />
         </View>
       </View>
     </Modal>
@@ -175,99 +209,106 @@ const Add = ({ onClose }: any) => {
 const MyList = () => {
   const [documents, setDocuments] = useState([]);
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [addToogled, setAddToogled] = useState<boolean>(false);
+  const [addToggled, setAddToggled] = useState(false);
+
+  const fetchDocuments = async () => {
+    try {
+      const docs = await getAllDocuments();
+      setDocuments(docs);
+    } catch (error) {
+      console.error("Erreur lors de la récupération :", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchDocuments = async () => {
-      try {
-        const docs = await getAllDocuments();
-        setDocuments(docs);
-      } catch (error) {
-        console.error("Erreur lors de la récupération des documents :", error);
-      }
-    };
     fetchDocuments();
   }, []);
 
-  const moyenneMinimale = Math.min(
-    ...documents.map(
-      (etudiant: any) => (etudiant.note_mat + etudiant.note_phy) / 2
-    )
-  );
-
-  const moyenneMaximale = Math.max(
-    ...documents.map(
-      (etudiant: any) => (etudiant.note_mat + etudiant.note_phy) / 2
-    )
-  );
+  const moyennes = documents.map((e: any) => (e.note_mat + e.note_phy) / 2);
+  const moyenneMinimale = moyennes.length > 0 ? Math.min(...moyennes) : 0;
+  const moyenneMaximale = moyennes.length > 0 ? Math.max(...moyennes) : 0;
+  const moyenneClasse =
+    moyennes.length > 0
+      ? moyennes.reduce((acc, val) => acc + val, 0) / moyennes.length
+      : 0;
+  const nbRedoublants = moyennes.filter((m) => m < 10).length;
+  const nbAdmis = moyennes.filter((m) => m >= 10).length;
 
   return (
-    <View className="p-5 bg-white">
-      {/* ✅ Label au-dessus de la liste */}
-
-      <Text className="text-xl font-bold mb-4">📊 Résultats des élèves</Text>
-      <View className="flex flex-row absolute right-0 mt-3 mr-5">
-        <Text
-          className="text-white text-xl p-2 px-4 bg-blue-600 rounded-full flex items-center justify-center shadow-lg"
-          onPress={() => {
-            setAddToogled(!addToogled);
-          }}
-        >
-          Ajouter
-        </Text>
-      </View>
-      {addToogled && <Add onClose={() => setAddToogled(!addToogled)} />}
-
-      {/* ✅ En-tête du tableau */}
-      <View className="flex-row bg-green-600 p-3 rounded-md mt-2">
-        <Text className="flex-1 text-white font-bold text-center">Numéro</Text>
-        <Text className="flex-1 text-white font-bold text-center">Nom</Text>
-        <Text className="flex-1 text-white font-bold text-center">Math</Text>
-        <Text className="flex-1 text-white font-bold text-center">
-          Physique
-        </Text>
-        <Text className="flex-1 text-white font-bold text-center">Moyenne</Text>
+    <ScrollView className="p-5 bg-white">
+      <View className="flex-row justify-between items-center mb-4">
+        <Text className="text-xl font-bold">📊 Résultats des élèves</Text>
+        <CustomButton title="➕ Ajouter" onPress={() => setAddToggled(true)} />
       </View>
 
-      {/* ✅ Liste des élèves */}
+      {addToggled && (
+        <Add onClose={() => setAddToggled(false)} onRefresh={fetchDocuments} />
+      )}
+
+      <View className="bg-green-600 p-3 rounded-md flex-row">
+        <Text className="flex-1 text-white text-center font-bold">Mat</Text>
+        <Text className="flex-1 text-white text-center font-bold">Nom</Text>
+        <Text className="flex-1 text-white text-center font-bold">Math</Text>
+        <Text className="flex-1 text-white text-center font-bold">Phy</Text>
+        <Text className="flex-1 text-white text-center font-bold">Moy</Text>
+      </View>
+
       <FlatList
         data={documents}
         keyExtractor={(item: any) => item.$id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => setSelectedItem(item)}>
-            <View className="flex-row border-b border-gray-300 p-3">
-              <Text className="flex-1 text-center">{item.mat}</Text>
-              <Text className="flex-1 text-center">{item.nom}</Text>
-              <Text className="flex-1 text-center">{item.note_mat}</Text>
-              <Text className="flex-1 text-center">{item.note_phy}</Text>
-              <Text className="flex-1 text-center">
-                {((item.note_mat + item.note_phy) / 2).toFixed(2)}
-              </Text>
-              <Text
-                className={`mt-2 w-2 h-2 rounded-full ${
-                  (item.note_mat + item.note_phy) / 2 >= 10
-                    ? `bg-green-400`
-                    : `bg-red-400`
-                }  `}
-              ></Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          const moyenne = ((item.note_mat + item.note_phy) / 2).toFixed(2);
+          return (
+            <TouchableOpacity onPress={() => setSelectedItem(item)}>
+              <View className="flex-row border-b border-gray-200 py-3">
+                <Text className="flex-1 text-center">{item.mat}</Text>
+                <Text className="flex-1 text-center">{item.nom}</Text>
+                <Text className="flex-1 text-center">{item.note_mat}</Text>
+                <Text className="flex-1 text-center">{item.note_phy}</Text>
+                <Text className="flex-1 text-center">{moyenne}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
       />
-      {setSelectedItem != null && (
-        <Preview item={selectedItem} onClose={() => setSelectedItem(null)} />
+
+      {selectedItem && (
+        <Preview
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onRefresh={fetchDocuments}
+        />
       )}
 
-      <View className="mt-3">
-        <Text className="font-bold text-center">
-          Moyenne minimale : {moyenneMinimale.toFixed(2)}
+      <View className="mt-6 bg-gray-50 rounded-xl p-4">
+        <Text className="font-bold text-center text-lg mb-3">
+          📊 Statistiques de la classe
         </Text>
-        <Text className="font-bold text-center">
-          Moyenne maximale : {moyenneMaximale.toFixed(2)}
-        </Text>
-        <Text className="font-bold text-center">Moyenne de classe :</Text>
-        <Text className="font-bold text-center">Nombre de redoublants :</Text>
+
+        <View className="flex flex-row flex-wrap justify-center gap-4">
+          <StatBox label="📉 Min." value={moyenneMinimale} color="blue" />
+          <StatBox label="📈 Max." value={moyenneMaximale} color="blue" />
+          <StatBox label="🧮 Moyenne" value={moyenneClasse} color="yellow" />
+          <StatBox label="🔁 Redoublants" value={nbRedoublants} color="red" />
+          <StatBox label="✅ Admis" value={nbAdmis} color="green" />
+        </View>
       </View>
+    </ScrollView>
+  );
+};
+
+const StatBox = ({ label, value, color }) => {
+  const bg = {
+    blue: "bg-blue-100 text-blue-800",
+    yellow: "bg-yellow-100 text-yellow-800",
+    red: "bg-red-100 text-red-800",
+    green: "bg-green-100 text-green-800",
+  }[color];
+
+  return (
+    <View className={`w-[45%] rounded-xl p-3 shadow-md ${bg}`}>
+      <Text className="text-sm">{label}</Text>
+      <Text className="text-2xl font-bold text-center">{value.toFixed(2)}</Text>
     </View>
   );
 };

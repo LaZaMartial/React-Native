@@ -9,7 +9,7 @@ export const updateDocument = async (documentId: string, updatedData: any) => {
       documentId, // ID du document à mettre à jour
       updatedData // Nouvelles données
     );
-    console.log("Document mis à jour :", response);
+    // console.log("Document mis à jour :", response);
     return response;
   } catch (error) {
     console.error("Erreur lors de la mise à jour du document :", error);
