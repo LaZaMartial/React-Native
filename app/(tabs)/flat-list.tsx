@@ -297,7 +297,13 @@ const MyList = () => {
   );
 };
 
-const StatBox = ({ label, value, color }) => {
+interface StatBoxProps {
+  label: string;
+  value: number;
+  color: "blue" | "yellow" | "red" | "green";
+}
+
+const StatBox: React.FC<StatBoxProps> = ({ label, value, color }) => {
   const bg = {
     blue: "bg-blue-100 text-blue-800",
     yellow: "bg-yellow-100 text-yellow-800",
