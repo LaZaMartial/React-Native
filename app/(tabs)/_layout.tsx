@@ -3,7 +3,7 @@ import React from "react";
 
 const _layout = () => {
   return (
-    <Tabs>
+    <Tabs screenOptions={{ tabBarStyle: { display: "none" } }}>
       <Tabs.Screen
         name="index"
         options={{ title: "home", headerShown: false }}

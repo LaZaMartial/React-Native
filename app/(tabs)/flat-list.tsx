@@ -1,20 +1,32 @@
 // src/components/MyList.tsx
-import React, { useState, useEffect } from "react";
+import { addDocument } from "@/services/create";
+import { deleteDocument } from "@/services/delete";
+import { getAllDocuments } from "@/services/get-all";
+import { updateDocument } from "@/services/update";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  Dimensions,
   FlatList,
   Modal,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
-  ScrollView,
 } from "react-native";
-import { TextInput, Button } from "react-native-paper";
-import { getAllDocuments } from "@/services/get-all";
-import { addDocument } from "@/services/create";
-import { updateDocument } from "@/services/update";
-import { deleteDocument } from "@/services/delete";
+import { BarChart } from "react-native-chart-kit";
+import { TextInput } from "react-native-paper";
 
-const CustomButton = ({ title, onPress, color = "#2563eb" }) => (
+type CustomButtonProps = {
+  title: string;
+  onPress: () => void;
+  color?: string;
+};
+
+const CustomButton = ({
+  title,
+  onPress,
+  color = "#2563eb",
+}: CustomButtonProps) => (
   <TouchableOpacity
     onPress={onPress}
     style={{
@@ -52,11 +64,11 @@ const Preview = ({ item, onClose, onRefresh }: any) => {
             📄 Détails de l'élève
           </Text>
 
-          <Text>📌 Matricule : {item?.mat}</Text>
-          <Text>👤 Nom : {item?.nom}</Text>
-          <Text>📘 Note Math : {item?.note_mat}</Text>
-          <Text>🧪 Note Physique : {item?.note_phy}</Text>
-          <Text>🧮 Moyenne : {moyenne.toFixed(2)}</Text>
+          <Text>Matricule : {item?.mat}</Text>
+          <Text>Nom : {item?.nom}</Text>
+          <Text>Note Math : {item?.note_mat}</Text>
+          <Text>Note Physique : {item?.note_phy}</Text>
+          <Text>Moyenne : {moyenne.toFixed(2)}</Text>
           <Text className="mb-4">
             🏷️ Statut :{" "}
             <Text className={moyenne >= 10 ? "text-green-600" : "text-red-600"}>
@@ -210,6 +222,9 @@ const MyList = () => {
   const [documents, setDocuments] = useState([]);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [addToggled, setAddToggled] = useState(false);
+  const [selectedGraph, setSelectedGraph] = useState<
+    "Min" | "Max" | "moyenne" | null
+  >(null);
 
   const fetchDocuments = async () => {
     try {
@@ -231,79 +246,186 @@ const MyList = () => {
     moyennes.length > 0
       ? moyennes.reduce((acc, val) => acc + val, 0) / moyennes.length
       : 0;
-  const nbRedoublants = moyennes.filter((m) => m < 10).length;
-  const nbAdmis = moyennes.filter((m) => m >= 10).length;
+  const nbRedoublants = Math.floor(moyennes.filter((m) => m < 10).length);
+  const nbAdmis = Math.floor(moyennes.filter((m) => m >= 10).length);
+
+  const chartData = {
+    labels: ["Élèves"],
+    datasets: [
+      {
+        data:
+          selectedGraph === "Min"
+            ? [moyenneMinimale]
+            : selectedGraph === "Max"
+            ? [moyenneMaximale]
+            : [moyenneClasse],
+      },
+    ],
+  };
+
+  // Barchart
+  const screenWidth = Dimensions.get("window").width;
+
+  const dataBar = {
+    labels: ["Min", "Max", "Moyenne"],
+    datasets: [
+      {
+        data: [moyenneMinimale, moyenneMaximale, moyenneClasse],
+      },
+    ],
+  };
+
+  // ScrollView ref
+  const scrollRef = useRef<ScrollView>(null);
+  const [selectedStat, setSelectedStat] = useState(null);
+
+  const handleStatPress = (stat: any) => {
+    setSelectedStat(stat);
+    // Auto-scroll vers le bas
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
 
   return (
-    <ScrollView className="p-5 bg-white">
-      <View className="flex-row justify-between items-center mb-4">
-        <Text className="text-xl font-bold">📊 Résultats des élèves</Text>
-        <CustomButton title="➕ Ajouter" onPress={() => setAddToggled(true)} />
-      </View>
+    <FlatList
+      data={documents}
+      keyExtractor={(item: any) => item.$id.toString()}
+      ListHeaderComponent={
+        <View className="p-5 bg-white">
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-xl font-bold">📊 Résultats des élèves</Text>
+            <CustomButton
+              title="➕ Ajouter"
+              onPress={() => setAddToggled(true)}
+            />
+          </View>
 
-      {addToggled && (
-        <Add onClose={() => setAddToggled(false)} onRefresh={fetchDocuments} />
-      )}
+          {addToggled && (
+            <Add
+              onClose={() => setAddToggled(false)}
+              onRefresh={fetchDocuments}
+            />
+          )}
 
-      <View className="bg-green-600 p-3 rounded-md flex-row">
-        <Text className="flex-1 text-white text-center font-bold">Mat</Text>
-        <Text className="flex-1 text-white text-center font-bold">Nom</Text>
-        <Text className="flex-1 text-white text-center font-bold">Math</Text>
-        <Text className="flex-1 text-white text-center font-bold">Phy</Text>
-        <Text className="flex-1 text-white text-center font-bold">Moy</Text>
-      </View>
-
-      <FlatList
-        data={documents}
-        keyExtractor={(item: any) => item.$id.toString()}
-        renderItem={({ item }) => {
-          const moyenne = ((item.note_mat + item.note_phy) / 2).toFixed(2);
-          return (
-            <TouchableOpacity onPress={() => setSelectedItem(item)}>
-              <View className="flex-row border-b border-gray-200 py-3">
-                <Text className="flex-1 text-center">{item.mat}</Text>
-                <Text className="flex-1 text-center">{item.nom}</Text>
-                <Text className="flex-1 text-center">{item.note_mat}</Text>
-                <Text className="flex-1 text-center">{item.note_phy}</Text>
-                <Text className="flex-1 text-center">{moyenne}</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        }}
-      />
-
-      {selectedItem && (
-        <Preview
-          item={selectedItem}
-          onClose={() => setSelectedItem(null)}
-          onRefresh={fetchDocuments}
-        />
-      )}
-
-      <View className="mt-6 bg-gray-50 rounded-xl p-4">
-        <Text className="font-bold text-center text-lg mb-3">
-          📊 Statistiques de la classe
-        </Text>
-
-        <View className="flex flex-row flex-wrap justify-center gap-4">
-          <StatBox label="📉 Min." value={moyenneMinimale} color="blue" />
-          <StatBox label="📈 Max." value={moyenneMaximale} color="blue" />
-          <StatBox label="🧮 Moyenne" value={moyenneClasse} color="yellow" />
-          <StatBox label="🔁 Redoublants" value={nbRedoublants} color="red" />
-          <StatBox label="✅ Admis" value={nbAdmis} color="green" />
+          <View className="bg-green-600 p-3 rounded-md flex-row">
+            <Text className="flex-1 text-white text-center font-bold">Mat</Text>
+            <Text className="flex-1 text-white text-center font-bold">Nom</Text>
+            <Text className="flex-1 text-white text-center font-bold">
+              Math
+            </Text>
+            <Text className="flex-1 text-white text-center font-bold">Phy</Text>
+            <Text className="flex-1 text-white text-center font-bold">Moy</Text>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      }
+      renderItem={({ item }) => {
+        const moyenne = ((item.note_mat + item.note_phy) / 2).toFixed(2);
+        return (
+          <TouchableOpacity onPress={() => setSelectedItem(item)}>
+            <View className="flex-row border-b border-gray-200 py-3 px-5 bg-white">
+              <Text className="flex-1 text-center">{item.mat}</Text>
+              <Text className="flex-1 text-center">{item.nom}</Text>
+              <Text className="flex-1 text-center">{item.note_mat}</Text>
+              <Text className="flex-1 text-center">{item.note_phy}</Text>
+              <Text className="flex-1 text-center">{moyenne}</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      }}
+      ListFooterComponent={
+        <View className="p-5 bg-white">
+          {selectedItem && (
+            <Preview
+              item={selectedItem}
+              onClose={() => setSelectedItem(null)}
+              onRefresh={fetchDocuments}
+            />
+          )}
+
+          {selectedGraph && (
+            <>
+              <BarChart
+                data={dataBar}
+                width={screenWidth - 40}
+                height={220}
+                fromZero
+                yAxisLabel=""
+                yAxisSuffix=""
+                showValuesOnTopOfBars
+                chartConfig={{
+                  backgroundColor: "#ffffff",
+                  backgroundGradientFrom: "#ffffff",
+                  backgroundGradientTo: "#ffffff",
+                  decimalPlaces: 2,
+                  color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                  barPercentage: 0.5,
+                }}
+                style={{
+                  marginVertical: 10,
+                  borderRadius: 16,
+                  alignSelf: "center",
+                }}
+              />
+              <TouchableOpacity
+                onPress={() => setSelectedGraph(null)}
+                className="bg-gray-300 p-2 rounded-lg mx-auto my-2"
+              >
+                <Text className="text-black">❌ Fermer le graphique</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <View className="mt-6 bg-gray-50 rounded-xl p-4">
+            <Text className="font-bold text-center text-lg mb-3">
+              📊 Statistiques de la classe
+            </Text>
+
+            <View className="flex flex-row flex-wrap justify-center gap-4">
+              <StatBox
+                label="📉 Min."
+                value={`${moyenneMinimale.toFixed(2)}`}
+                color="blue"
+                onPress={() => setSelectedGraph("Min")}
+              />
+              <StatBox
+                label="📈 Max."
+                value={`${moyenneMaximale.toFixed(2)}`}
+                color="blue"
+                onPress={() => setSelectedGraph("Max")}
+              />
+              <StatBox
+                label="🧮 Moyenne"
+                value={`${moyenneClasse.toFixed(2)}`}
+                color="yellow"
+                onPress={() => setSelectedGraph("moyenne")}
+              />
+              <StatBox
+                label="🔁 Redoublants"
+                value={`${nbRedoublants}`}
+                color="red"
+              />
+              <StatBox label="✅ Admis" value={`${nbAdmis}`} color="green" />
+            </View>
+          </View>
+        </View>
+      }
+      contentContainerStyle={{ backgroundColor: "#f3f4f6", paddingBottom: 100 }}
+    />
   );
 };
 
+// StatBox component
+
 interface StatBoxProps {
   label: string;
-  value: number;
+  value: string;
   color: "blue" | "yellow" | "red" | "green";
+  onPress?: () => void;
 }
 
-const StatBox: React.FC<StatBoxProps> = ({ label, value, color }) => {
+const StatBox: React.FC<StatBoxProps> = ({ label, value, color, onPress }) => {
   const bg = {
     blue: "bg-blue-100 text-blue-800",
     yellow: "bg-yellow-100 text-yellow-800",
@@ -312,10 +434,13 @@ const StatBox: React.FC<StatBoxProps> = ({ label, value, color }) => {
   }[color];
 
   return (
-    <View className={`w-[45%] rounded-xl p-3 shadow-md ${bg}`}>
+    <TouchableOpacity
+      className={`w-[45%] rounded-xl p-3 shadow-md ${bg}`}
+      onPress={onPress}
+    >
       <Text className="text-sm">{label}</Text>
-      <Text className="text-2xl font-bold text-center">{value.toFixed(2)}</Text>
-    </View>
+      <Text className="text-2xl font-bold text-center">{value}</Text>
+    </TouchableOpacity>
   );
 };
 
